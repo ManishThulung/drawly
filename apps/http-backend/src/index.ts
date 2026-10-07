@@ -96,9 +96,15 @@ app.post(
         message: "room joined successfull",
       });
     } catch (err) {
+      console.log(err, "eeeeeeeee");
       if (err instanceof Prisma.PrismaClientKnownRequestError) {
         if (err.code === "P2002") {
           return next(new ErrorHandler(400, "Room already exists."));
+        }
+      }
+      if (err instanceof Prisma.PrismaClientKnownRequestError) {
+        if (err.code === "P2025") {
+          return next(new ErrorHandler(400, "Room not found."));
         }
       }
       next(err);
@@ -123,11 +129,30 @@ app.get(
               slug: true,
               id: true,
               createdAt: true,
-              admin: { select: { username: true } },
+              admin: { select: { id: true, username: true } },
+              _count: { select: { members: true } },
             },
           },
         },
       });
+
+      // const rooms = await prisma.user.findMany({
+      //   where: {
+      //     id: Number(req.userId),
+      //   },
+      //   include: {
+      //     rooms: {
+      //       select: {
+      //         slug: true,
+      //         id: true,
+      //         createdAt: true,
+      //         admin: { select: { username: true } },
+      //         members: true,
+      //       },
+      //     },
+      //   },
+      // });
+
       if (!rooms) {
         throw new ErrorHandler(404, "Rooms not found!");
       }

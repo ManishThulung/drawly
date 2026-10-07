@@ -14,7 +14,6 @@ import {
 import { cn } from "@/lib/utils";
 import { ContentType } from "@/types";
 import { Tools } from "@/types/enums";
-
 import { useEffect, useRef, useState } from "react";
 import { ChatSheet } from "./chat/ChatSheet";
 import { availableTools } from "@/lib/constants";
@@ -364,7 +363,13 @@ const Canvas = ({ roomId, socket }: { roomId: string; socket: WebSocket }) => {
                 x: (data.x += dx),
                 y: (data.y += dy),
               };
+              console.log(
+                { updatedShape, data },
+                "{updatedShape, data}{updatedShape, data}",
+              );
+              // if (updatedShape.x != data.x || updatedShape.y != data.y) {
               drawEvent(socket, roomId, updatedShape, data.type, shape.id);
+              // }
             });
           }
           isDraggingShapeRef.current = false;
@@ -379,6 +384,12 @@ const Canvas = ({ roomId, socket }: { roomId: string; socket: WebSocket }) => {
           const handle = resizeHandleRef.current;
 
           const updatedData = handleResize(data, handle, pos);
+          console.log({ updatedData, data }, "{updatedData, data}");
+          // if data is not moved then just return
+          // if (updatedData.x == data.x || updatedData.y == data.y) {
+          //   resizeHandleRef.current = null; // release the resize handle
+          //   return;
+          // }
 
           drawEvent(socket, roomId, updatedData, data.type, shape.id);
 

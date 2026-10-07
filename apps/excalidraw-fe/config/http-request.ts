@@ -1,7 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
 export const api = axios.create({
-  baseURL: "http://localhost:4000/api",
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL!,
   withCredentials: true,
   timeout: 30000,
   headers: {
@@ -35,6 +35,6 @@ api.interceptors.response.use(
 );
 
 export async function getShapes(roomId: string) {
-  const res = await api.get(`http://localhost:4000/api/shapes/${roomId}`);
+  const res = await api.get(`/shapes/${roomId}`);
   return res.data;
 }

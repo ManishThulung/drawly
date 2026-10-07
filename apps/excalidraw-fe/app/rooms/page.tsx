@@ -2,15 +2,10 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -30,29 +25,44 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/config/http-request";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createRoomSchema } from "@repo/common/schema";
-import { Calendar, Link as LinkIcon, Plus, Search, Users } from "lucide-react";
+import { Calendar, LinkIcon, Plus, Search, Users } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-interface Room {
-  id: string;
-  slug: string;
-  createdAt: string;
-  adminId: string;
-  admin: {
-    id: string;
+export interface RoomMember {
+  id: number;
+  userId: number;
+  roomId: number;
+  role: "Admin" | "Member";
+  joinedAt: string; // ISO date string
+
+  user: {
+    id: number;
     username: string;
   };
-  // code: string;
-  // createdBy: string;
-  // participants: number;
-  // isOwner: boolean;
+
+  room: {
+    id: number;
+    slug: string;
+    createdAt: string; // ISO date string
+
+    admin: {
+      id: number;
+      username: string;
+    };
+
+    _count: {
+      members: number;
+    };
+  };
 }
 
 const Dashboard = () => {
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const router = useRouter();
+  const [rooms, setRooms] = useState<RoomMember[]>([]);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -72,9 +82,10 @@ const Dashboard = () => {
         const res = await api.post("/room", { name: values.name });
 
         if (res.data.success) {
-          setRooms((prev) => [res.data.room, ...prev]);
+          router.push(`/rooms/${res.data.room.id}`);
+          // setRooms((prev) => [res.data.room, ...prev]);
           form.reset();
-          setIsCreateDialogOpen(false);
+          // setIsCreateDialogOpen(false);
           toast.success("Room created successfully!");
         }
       } catch (err: any) {
@@ -89,10 +100,11 @@ const Dashboard = () => {
       const res = await api.post("/room/join", { name: joinCode });
 
       if (res.data.success) {
-        setRooms((prev) => [res.data.room, ...prev]);
+        router.push(`/rooms/${res.data.room.id}`);
+        // setRooms((prev) => [res.data.room, ...prev]);
         form.reset();
-        setIsCreateDialogOpen(false);
-        toast.success("Room created successfully!");
+        // setIsCreateDialogOpen(false);
+        toast.success("Room joined successfully!");
       }
     } catch (err: any) {
       // setError(err.response.data.message);
@@ -100,10 +112,10 @@ const Dashboard = () => {
     }
   };
 
-  const handleDeleteRoom = (roomId: string) => {
-    // setRooms(rooms.filter((room) => room.id !== roomId));
-    // toast.success("The room has been permanently deleted.");
-  };
+  // const handleDeleteRoom = (roomId: string) => {
+  //   // setRooms(rooms.filter((room) => room.id !== roomId));
+  //   // toast.success("The room has been permanently deleted.");
+  // };
 
   const filteredRooms =
     rooms.length > 0
@@ -111,7 +123,6 @@ const Dashboard = () => {
           item.room.slug.toLowerCase().includes(searchQuery.toLowerCase()),
         )
       : [];
-  console.log(filteredRooms, "filteredRoomsfilteredRooms");
   useEffect(() => {
     const getData = async () => {
       setLoading(false);
@@ -120,7 +131,6 @@ const Dashboard = () => {
         const res = await api.get("/rooms");
 
         if (res.data && res.data.success) {
-          console.log(res.data.rooms, "dddddddddddddddddd");
           setRooms(res.data.rooms);
         }
       } catch (err: any) {
@@ -136,7 +146,6 @@ const Dashboard = () => {
   if (loading) {
     return <div>loading....</div>;
   }
-  console.log(rooms, "sdfsfd");
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -161,10 +170,50 @@ const Dashboard = () => {
                   className="pl-10 w-64"
                 />
               </div>
-              <Button variant="outline" onClick={() => setJoinCode("")}>
-                <LinkIcon className="h-4 w-4 mr-2" />
-                Join Room
-              </Button>
+
+              <Dialog
+              // open={isCreateDialogOpen}
+              // onOpenChange={setIsCreateDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button variant="outline" onClick={() => setJoinCode("")}>
+                    <LinkIcon className="h-4 w-4 mr-2" />
+                    Join Room
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Quick Join Room</DialogTitle>
+                    <DialogDescription>
+                      <span className="text-[#f1f1f1]">
+                        Have a room code? Join an existing collaborative session
+                        instantly.
+                      </span>
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  {/* Quick Join Section */}
+                  <div className="container mx-auto px-6 py-6">
+                    <div className="flex gap-3">
+                      <Input
+                        placeholder="Enter room code (e.g., ABC123)"
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value)}
+                        className="max-w-sm"
+                      />
+                      <DialogClose>
+                        <Button
+                          onClick={handleJoinRoom}
+                          disabled={!joinCode.trim()}
+                        >
+                          Join Room
+                        </Button>
+                      </DialogClose>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <Dialog
                 open={isCreateDialogOpen}
                 onOpenChange={setIsCreateDialogOpen}
@@ -225,32 +274,6 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {/* Quick Join Section */}
-      <div className="container mx-auto px-6 py-6">
-        <Card className="bg-card border-border shadow-card">
-          <CardHeader>
-            <CardTitle className="text-foreground">Quick Join</CardTitle>
-            <CardDescription>
-              Have a room code? Join an existing collaborative session
-              instantly.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-3">
-              <Input
-                placeholder="Enter room code (e.g., ABC123)"
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value)}
-                className="max-w-sm"
-              />
-              <Button onClick={handleJoinRoom} disabled={!joinCode.trim()}>
-                Join Room
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Rooms Grid */}
       <div className="container mx-auto px-6 pb-12">
         <div className="mb-6">
@@ -298,21 +321,18 @@ const Dashboard = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <CardTitle className="text-foreground text-lg mb-1">
-                        {room.room.slug}
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {room.room.id}
-                        </Badge>
+                        {room.room.slug}{" "}
                         {room.id && (
                           <Badge
                             variant="outline"
                             className="text-xs border-primary text-primary"
                           >
-                            Owner
+                            {room.room.admin.id == room.userId
+                              ? "Owner"
+                              : "Member"}
                           </Badge>
                         )}
-                      </div>
+                      </CardTitle>
                     </div>
                     {/* {room.isOwner && (
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -337,7 +357,7 @@ const Dashboard = () => {
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
                         <span>
-                          5 participant
+                          {room.room._count.members} participant
                           {/* {room.participants} participant
                           {room.participants !== 1 ? "s" : ""} */}
                         </span>
@@ -349,7 +369,7 @@ const Dashboard = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-muted-foreground pb-6">
                       Created by:{" "}
                       <span className="text-foreground">
                         {room.room.admin.username}
